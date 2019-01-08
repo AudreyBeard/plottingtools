@@ -1,1 +1,1 @@
-name = "plottingtools"
+from plottingtools import bar_chart
