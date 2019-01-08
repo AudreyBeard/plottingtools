@@ -1,6 +1,11 @@
 # bar_chart.py
 # Author: Joshua Beard
 # Created: 2019-01-08
+
+# TODO:
+# [ ] Better placement of on-chart text relative to bar height
+# [ ] Support for "below"-bar on-chart text
+# [ ] Test non-scaled bars
 import numpy as np
 from matplotlib import pyplot as plt
 
@@ -42,7 +47,7 @@ def plot_separate(data,
     if use_bottom_labels and labels is not None:
         bottom_labels = [labels[i] + '\nN = {}'.format(data[i])
                          for i in range(len(labels))]
-        if len(labels) > 6:
+        if len(labels) > 7:
             # TODO test this
             label_rotation = 45
         else:
