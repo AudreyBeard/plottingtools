@@ -11,4 +11,5 @@ setup(name='plottingtools',
       author_email='joshuabeard92@gmail.com',
       packages=['plottingtools'],
       install_requires=['numpy', 'matplotlib'],
+      url='https://github.com/JoshuaBeard/plottingtools',
       )
