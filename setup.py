@@ -5,7 +5,7 @@ with open("README.md", "r") as fh:
     long_description = fh.read()
 
 setup(name='plottingtools',
-      version='0.1.2',
+      version='0.1.3',
       description='A collection of tools for plotting graphs that I have used often enough (or are complex enough) for me to add to a repo',
       long_description=long_description,
       author='Joshua Beard',
