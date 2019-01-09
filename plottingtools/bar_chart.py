@@ -8,6 +8,8 @@
 # [ ] Test non-scaled bars
 # [ ] different logic if labels are numbers as opposed to strings?
 # [ ] support show=False
+# [ ] label_rotation = 45 causes part of long labels to be placed off page. Can I rectify this?
+
 import numpy as np
 from matplotlib import pyplot as plt
 from . import util
@@ -19,7 +21,7 @@ def plot_separate(data,
                   figsize=(12, 8),
                   title='',
                   ylim=None,
-                  max_val_pad=None,
+                  max_val_pad=0.1,
                   sort_order=None,
                   use_bottom_labels=False,
                   use_legend=False,
@@ -86,13 +88,16 @@ def plot_separate(data,
         labels = labels[order]
 
     # If we're showing labels at the bottom (and they're defined):
+    util.check_parameter(labels, 'labels', valid_options)
     if use_bottom_labels and labels is not None:
+        if len(labels) != len(data):
+            raise ValueError('len(labels) != len(data)')
+
         bottom_labels = [labels[i] + '\nN = {}'.format(data[i])
                          for i in range(len(labels))]
 
         # If there are lots of items, rotate the labels
         if len(labels) > 7:
-            # TODO test this
             label_rotation = 45
         else:
             label_rotation = 0
@@ -115,11 +120,13 @@ def plot_separate(data,
     offsets = list(range(len(labels)))
 
     # If we're displaying percentages, scale the y-axis accordingly
+    util.check_parameter(label_bars_format, 'label_bars_format', valid_options)
     if label_bars_format.lower() == 'percent':
         data *= 100
         if ylim is not None:
             ylim = (ylim[0] * 100, ylim[1] * 100)
 
+    # Now let's plot the damn thing
     bars = []
     fig = plt.figure(figsize=figsize)
     ax = fig.add_subplot(111)
@@ -151,26 +158,27 @@ def plot_separate(data,
 
     # If ylim is not specified, autoscale
     if ylim is None:
-        if max_val_pad is None:
-            max_val_pad = .1
-
         ylim = (0, max(data) + max(data) * max_val_pad)
 
-    # limits and tick spacing
+    # Limits and tick spacing
     ax.set_ylim(ylim)
     ax.set_xlim(-bar_width, (len(data) - 1) + bar_width)
     ax.set_xticks(offsets)
+    plt.tick_params(labelsize=max(figsize))
 
+    # If bottom labels were defined
     if bottom_labels is not None:
         xtick_labels = ax.set_xticklabels(bottom_labels)
         plt.setp(xtick_labels, rotation=label_rotation)
 
+    # Using a legend
     if use_legend:
         ax.legend(bars, labels, prop={'size': max(figsize)})
 
+    # Title
     fig.suptitle(title, fontsize=max(figsize) * 2)
-    plt.tick_params(labelsize=max(figsize))
 
+    # Saving uses title if save_name is not defined
     if save:
         if save_name is not None:
             plt.savefig(save_name)
