@@ -16,26 +16,26 @@ from . import util
 
 
 def bars(data,
-                  labels=None,
-                  bar_width=0.75,
-                  figsize=(12, 8),
-                  title='',
-                  ylim=None,
-                  max_val_pad=0.1,
-                  sort_order=None,
-                  show_bottom_labels=True,
-                  show_legend=False,
-                  show_max_val=False,
-                  show=True,
-                  save=False,
-                  save_name=None,
-                  scale_by=None,
-                  show_bar_labels=False,
-                  bar_label_format=None,
-                  multicolor=True,
-                  show_as_percent=False,
-                  debug=False,
-                  ):
+         labels=None,
+         bar_width=0.75,
+         figsize=(12, 8),
+         title='',
+         ylim=None,
+         max_val_pad=0.1,
+         sort_by=None,
+         show_bottom_labels=True,
+         show_legend=False,
+         show_max_val=False,
+         show=True,
+         save=False,
+         save_name=None,
+         scale_by=None,
+         show_bar_labels=False,
+         bar_label_format=None,
+         multicolor=True,
+         show_as_percent=False,
+         debug=False,
+         ):
     """
         Plots separate bars as independent categories, coloring them differently
         Parameters:
@@ -46,7 +46,7 @@ def bars(data,
             title: <str> defining the graph title, which is scaled based on figure size. If save_name is not defined, but save==True, this is also the save name
             ylim: <list>, <tuple>, or <np.ndarray> of y limits, None does autoscaling
             max_val_pad: <int> or <float> defining the proportional padding above the max value. Autoscaling uses 0.1
-            sort_order: <str>, <tuple>, <list>, <np.ndarray> defining order of data displayed ('ascending' or 'descending', or some canonical ordering). None does no sorting
+            sort_by: <str>, <tuple>, <list>, <np.ndarray> defining order of data displayed ('ascending' or 'descending', or some canonical ordering). None does no sorting
             show_bottom_labels: <bool> switch for displaying labels at the bottom
             show_legend: <bool> switch for displaying legend
             show_max_val: <bool> switch for displaying dashed line at maximum value
@@ -66,7 +66,7 @@ def bars(data,
                      'title': (str),
                      'ylim': (list, tuple, np.ndarray, None),
                      'max_val_pad': (int, float, None),
-                     'sort_order': (None, 'ascending', 'descending', tuple, list, np.ndarray),
+                     'sort_by': (None, 'ascending', 'descending', tuple, list, np.ndarray),
                      'show_bottom_labels': (bool),
                      'show_legend': (bool),
                      'show_max_val': (bool),
@@ -83,18 +83,18 @@ def bars(data,
     labels = np.array(labels)
 
     # Only sort if specified, and do so either ascending or descending
-    util.check_parameter(sort_order, 'sort_order', valid_options)
-    if sort_order is not None:
+    util.check_parameter(sort_by, 'sort_by', valid_options)
+    if sort_by is not None:
         if debug:
             import ipdb
             ipdb.set_trace()
 
-        if isinstance(sort_order, str):
+        if isinstance(sort_by, str):
             order = np.argsort(data)
-            if sort_order.lower() == 'descending':
+            if sort_by.lower() == 'descending':
                 order = order[::-1]
         else:
-            order = np.array(sort_order)
+            order = np.array(sort_by)
         data = data[order]
         labels = labels[order]
 
@@ -118,9 +118,9 @@ def bars(data,
     # Used if normalizing
     if scale_by is not None:
         data = data / np.array(scale_by)
-        n_total = 1
+        max_val = 1
     else:
-        n_total = data.sum()
+        max_val = data.max()
 
     # Separation between bars
     #string_dtype = np.dtype('<U1')
@@ -148,8 +148,9 @@ def bars(data,
 
     # Show a line at the maximum value
     if show_max_val:
+        max_val = 100 if show_as_percent else max_val
         ax.plot([min(offsets) - 1, max(offsets) + 1],
-                [n_total, n_total],
+                [max_val, max_val],
                 '--',
                 color=[0.75, 0.75, 0.75])
 
@@ -184,6 +185,8 @@ def bars(data,
     if bottom_labels is not None:
         xtick_labels = ax.set_xticklabels(bottom_labels)
         plt.setp(xtick_labels, rotation=label_rotation)
+    else:
+        xtick_labels = ax.set_xticklabels(['' for i in data])
 
     # Using a legend
     if show_legend:
