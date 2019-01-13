@@ -1,1 +1,1 @@
-from plottingtools import bar_chart
+from plottingtools import plot
