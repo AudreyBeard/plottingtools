@@ -1,6 +1,7 @@
 # util.py
 # Author: Joshua Beard
 # Created: 2019-01-08
+from numpy import ndarray
 
 
 def check_parameter(param_value, param_name, valid_options_dict):
@@ -30,6 +31,7 @@ def check_parameter(param_value, param_name, valid_options_dict):
         raise ValueError('Did not find {} in valid options dict'.format(param_name))
 
     is_valid = [type(param_value) == o if type(o) == type else
+                0 if type(param_value) == ndarray else
                 param_value == o for o in valid_options_dict.get(param_name)]
 
     if sum(is_valid) < 1:
