@@ -3,6 +3,7 @@
 # Created: 2019-01-08
 
 # TODO:
+# [ ] Finish the scatter plot
 # [ ] Better placement of on-chart text relative to bar height
 # [ ] Support for "below"-bar on-chart text
 # [ ] Test non-scaled bars
@@ -202,5 +203,15 @@ def bars(data,
         else:
             plt.savefig(title)
 
+    if show:
+        plt.show()
+
+
+def scatter(data_y, data_x=None, labels=None, show=True):
+
+    if data_x is None:
+        data_x = np.arange(1, len(data_y) + 1)
+
+    plt.plot(data_x, data_y)
     if show:
         plt.show()
