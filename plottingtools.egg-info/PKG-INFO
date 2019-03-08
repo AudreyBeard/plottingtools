@@ -25,7 +25,17 @@ Description: # plottingtools
         
         ## Functionality
         Currently, this package does the following:
-        - Display data as distinctly-colored bars on a single plot
+        - Display data as bars on a single plot
+            - Single/multi color
+            - Scaled by a scalar or broadcastable array-like object
+            - Shown as percentages
+            - Text:
+                - Titles
+                - legends
+                - X-axis labels
+                - over-bar labels
+            - Examples:
+                located in plottingtools/examples
         
         
         ## Installation

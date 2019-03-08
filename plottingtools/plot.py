@@ -9,10 +9,12 @@
 # [ ] different logic if labels are numbers as opposed to strings?
 # [ ] support show=False
 # [ ] label_rotation = 45 causes part of long labels to be placed off page. Can I rectify this?
+# [ ] init of Plot2D should use a kwarg
 
 import numpy as np
 from matplotlib import pyplot as plt
 from . import util
+from collections import Iterable
 
 
 def bars(data,
@@ -204,3 +206,47 @@ def bars(data,
 
     if show:
         plt.show()
+
+
+class Plot2D():
+    def __init__(self, **kwargs):
+        plot_type = kwargs.get['type'].lower()
+        if plot_type == 'bars':
+            data = kwargs.get('data') 
+            if data is None:
+                data = kwargs.get('x') 
+            bars(data, **kwargs)
+        elif plot_type == 'lines':
+            self.plot = Lines(**kwargs)
+
+
+class Lines(Plot2D):
+    valid_options = {'x': (list, np.ndarray),
+                     'y': (list, np.ndarray),
+                     'labels': (list, np.ndarray),
+                     'bar_width': (float),
+                     'figsize': (list, tuple, np.ndarray),
+                     'title': (str),
+                     'ylim': (list, tuple, np.ndarray, None),
+                     'max_val_pad': (int, float, None),
+                     'show_bottom_labels': (bool),
+                     'show_legend': (bool),
+                     'show_max_val': (bool),
+                     'show': (bool),
+                     'save': (bool),
+                     'save_name': (str, None),
+                     'scale_by': (list, tuple, int, float, np.ndarray, None),
+                     'show_bar_labels': (bool),
+                     'bar_label_format': (None, type(lambda x: x)),
+                     'save': (bool),
+                     }
+    def __init__(self, **kwargs):
+        # Check all kwargs
+        (util.check_parameter(v, k, valid_options) for k, v in kwargs.items())
+        self._fig = plt.figure(figsize=figsize)
+        self._ax = fig.add_subplot(111)
+        self._ax.plot(x, y)
+    def show(self):
+        plt.show()
+
+
