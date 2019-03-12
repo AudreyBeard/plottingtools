@@ -15,6 +15,7 @@ import numpy as np
 from matplotlib import pyplot as plt
 from . import util
 from collections import Iterable
+from os.path import join as pathjoin
 
 
 def bars(data,
@@ -293,6 +294,6 @@ class Lines(Plot2D):
         if savename is not None:
             self._savename = savename
 
-        plt.savefig(self._savename)
+        plt.savefig(pathjoin('figs', self._savename))
 
 
