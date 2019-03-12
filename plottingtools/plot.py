@@ -210,7 +210,7 @@ def bars(data,
 
 class Plot2D():
     def __init__(self, **kwargs):
-        plot_type = kwargs.get['type'].lower()
+        plot_type = kwargs.get('plot_type').lower()
         if plot_type == 'bars':
             data = kwargs.get('data') 
             if data is None:
@@ -243,10 +243,56 @@ class Lines(Plot2D):
     def __init__(self, **kwargs):
         # Check all kwargs
         (util.check_parameter(v, k, valid_options) for k, v in kwargs.items())
-        self._fig = plt.figure(figsize=figsize)
-        self._ax = fig.add_subplot(111)
-        self._ax.plot(x, y)
+        self.xdata = kwargs['x']
+        self.ydata = kwargs['y']
+        self.labels = kwargs.get('labels', None)
+        self.title = kwargs.get('title', '')
+        self._figsize = kwargs.get('figsize', (12, 8))
+
+        self._fig = plt.figure(figsize=self._figsize)
+        self._ax = self._fig.add_subplot(111)
+
+        self._savename = kwargs.get('savename')
+        if self._savename is None:
+            self._savename = 'graph_' + '_'.join(self.title.split(' '))
+
+        self._lines = []
+        
+        # Do the plotting (and add legend if labels are given)
+        if self.labels is not None:
+            for i, (y, label) in enumerate(zip(self.ydata, self.labels)):
+                self._lines.append(self._ax.plot(self.xdata, y, label=label))
+            plt.legend()
+        else:
+            for i, y in enumerate(self.ydata):
+                self._lines.append(self._ax.plot(self.xdata, y))
+
+        # Title
+        plt.title(self.title)
+
+        # x and y labels
+        xlabel = kwargs.get('xlabel', None)
+        if xlabel is not None:
+            self._ax.set_xlabel(xlabel)
+
+        ylabel = kwargs.get('ylabel', None)
+        if ylabel is not None:
+            self._ax.set_ylabel(ylabel)
+
+        # Save and show now if needed
+        if kwargs.get('save', False):
+            self.save()
+
+        if kwargs.get('show', False):
+            self.show()
+
     def show(self):
         plt.show()
+
+    def save(self, savename=None):
+        if savename is not None:
+            self._savename = savename
+
+        plt.savefig(self._savename)
 
 
