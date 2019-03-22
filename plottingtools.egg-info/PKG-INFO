@@ -6,6 +6,7 @@ Home-page: https://github.com/JoshuaBeard/plottingtools
 Author: Joshua Beard
 Author-email: joshuabeard92@gmail.com
 License: UNKNOWN
+Description-Content-Type: UNKNOWN
 Description: # plottingtools
         A collection of tools that I use for plotting often enough (or with enough
         complexity) to necessitate creating a useful API.
