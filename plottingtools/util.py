@@ -167,11 +167,12 @@ def check_constraints(param_value, param_name, constraints, check_all=True):
 
 
 class ParameterRegister(collections.OrderedDict):
-    def __init__(self, constraints=None, defaults=None, accept_none=False):
+    def __init__(self, constraints=None, defaults=None, accept_none=False, inclusive=False):
         super().__init__()
         self.constraints = constraints
         self.defaults = defaults
         self.accept_none = accept_none
+        self.inclusive = inclusive
 
     def register(self, kwarg_name, constraints=None, default=None):
         self.constraints[kwarg_name] = constraints
@@ -179,9 +180,9 @@ class ParameterRegister(collections.OrderedDict):
 
     def check_kwargs(self, **kwargs):
         if self.accept_none:
-            valid = {k: check_constraints(v, k, self.constraints) or v is None for k, v in kwargs.items()}  # NOQA
+            valid = {k: check_constraints(v, k, self.constraints, check_all=self.inclusive) or v is None for k, v in kwargs.items()}  # NOQA
         else:
-            valid = {k: check_constraints(v, k, self.constraints) for k, v in kwargs.items()}  # NOQA
+            valid = {k: check_constraints(v, k, self.constraints, check_all=self.inclusive) for k, v in kwargs.items()}  # NOQA
         return valid
 
     def set_uninitialized_params(self, defaults=None):
