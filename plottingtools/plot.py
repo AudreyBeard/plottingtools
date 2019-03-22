@@ -237,8 +237,8 @@ class Lines(Plot2D):
                    'xlabel': str,
                    'ylabel': str,
                    }
-    defaults = {'x': [],
-                'y': [],
+    defaults = {'x': None,
+                'y': None,
                 'labels': None,
                 'figsize': (12, 8),
                 'title': '',
@@ -268,6 +268,7 @@ class Lines(Plot2D):
         
         # Do the plotting (and add legend if labels are given)
         if self.params['labels'] is not None:
+            # TODO do I need to do something special if x is None?
             for i, (y, label) in enumerate(zip(self.params['x'], self.params['y'])):
                 self._lines.append(self._ax.plot(self.params['x'], y, label=label))
             plt.legend()
@@ -276,7 +277,7 @@ class Lines(Plot2D):
                 self._lines.append(self._ax.plot(self.params['x'], y))
 
         # Title
-        plt.title(self.params.['title'])
+        plt.title(self.params['title'])
 
         # x and y labels
         if self.params['xlabel'] is not None:
