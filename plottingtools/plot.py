@@ -3,17 +3,19 @@
 # Created: 2019-01-08
 
 # TODO:
-# [ ] Finish the scatter plot
 # [ ] Better placement of on-chart text relative to bar height
 # [ ] Support for "below"-bar on-chart text
 # [ ] Test non-scaled bars
 # [ ] different logic if labels are numbers as opposed to strings?
 # [ ] support show=False
 # [ ] label_rotation = 45 causes part of long labels to be placed off page. Can I rectify this?
+# [ ] init of Plot2D should use a kwarg
 
 import numpy as np
 from matplotlib import pyplot as plt
 from . import util
+from collections import Iterable
+from os.path import join as pathjoin
 
 
 def bars(data,
@@ -207,11 +209,91 @@ def bars(data,
         plt.show()
 
 
-def scatter(data_y, data_x=None, labels=None, show=True):
+class Plot2D():
+    def __init__(self, **kwargs):
+        plot_type = kwargs.get('plot_type').lower()
+        if plot_type == 'bars':
+            data = kwargs.get('data') 
+            if data is None:
+                data = kwargs.get('x') 
+            bars(data, **kwargs)
+        elif plot_type == 'lines':
+            self.plot = Lines(**kwargs)
 
-    if data_x is None:
-        data_x = np.arange(1, len(data_y) + 1)
 
-    plt.plot(data_x, data_y)
-    if show:
+class Lines(Plot2D):
+    valid_options = {'x': (list, np.ndarray),
+                     'y': (list, np.ndarray),
+                     'labels': (list, np.ndarray),
+                     'bar_width': (float),
+                     'figsize': (list, tuple, np.ndarray),
+                     'title': (str),
+                     'ylim': (list, tuple, np.ndarray, None),
+                     'max_val_pad': (int, float, None),
+                     'show_bottom_labels': (bool),
+                     'show_legend': (bool),
+                     'show_max_val': (bool),
+                     'show': (bool),
+                     'save': (bool),
+                     'save_name': (str, None),
+                     'scale_by': (list, tuple, int, float, np.ndarray, None),
+                     'show_bar_labels': (bool),
+                     'bar_label_format': (None, type(lambda x: x)),
+                     'save': (bool),
+                     }
+    def __init__(self, **kwargs):
+        # Check all kwargs
+        (util.check_parameter(v, k, valid_options) for k, v in kwargs.items())
+        self.xdata = kwargs['x']
+        self.ydata = kwargs['y']
+        self.labels = kwargs.get('labels', None)
+        self.title = kwargs.get('title', '')
+        self._figsize = kwargs.get('figsize', (12, 8))
+
+        self._fig = plt.figure(figsize=self._figsize)
+        self._ax = self._fig.add_subplot(111)
+
+        self._savename = kwargs.get('savename')
+        if self._savename is None:
+            self._savename = 'graph_' + '_'.join(self.title.split(' '))
+
+        self._lines = []
+        
+        # Do the plotting (and add legend if labels are given)
+        if self.labels is not None:
+            for i, (y, label) in enumerate(zip(self.ydata, self.labels)):
+                self._lines.append(self._ax.plot(self.xdata, y, label=label))
+            plt.legend()
+        else:
+            for i, y in enumerate(self.ydata):
+                self._lines.append(self._ax.plot(self.xdata, y))
+
+        # Title
+        plt.title(self.title)
+
+        # x and y labels
+        xlabel = kwargs.get('xlabel', None)
+        if xlabel is not None:
+            self._ax.set_xlabel(xlabel)
+
+        ylabel = kwargs.get('ylabel', None)
+        if ylabel is not None:
+            self._ax.set_ylabel(ylabel)
+
+        # Save and show now if needed
+        if kwargs.get('save', False):
+            self.save()
+
+        if kwargs.get('show', False):
+            self.show()
+
+    def show(self):
         plt.show()
+
+    def save(self, savename=None):
+        if savename is not None:
+            self._savename = savename
+
+        plt.savefig(pathjoin('figs', self._savename))
+
+
