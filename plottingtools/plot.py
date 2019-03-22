@@ -222,69 +222,74 @@ class Plot2D():
 
 
 class Lines(Plot2D):
-    valid_options = {'x': (list, np.ndarray),
-                     'y': (list, np.ndarray),
-                     'labels': (list, np.ndarray),
-                     'bar_width': (float),
-                     'figsize': (list, tuple, np.ndarray),
-                     'title': (str),
-                     'ylim': (list, tuple, np.ndarray, None),
-                     'max_val_pad': (int, float, None),
-                     'show_bottom_labels': (bool),
-                     'show_legend': (bool),
-                     'show_max_val': (bool),
-                     'show': (bool),
-                     'save': (bool),
-                     'save_name': (str, None),
-                     'scale_by': (list, tuple, int, float, np.ndarray, None),
-                     'show_bar_labels': (bool),
-                     'bar_label_format': (None, type(lambda x: x)),
-                     'save': (bool),
-                     }
+    constraints = {'x': Iterable,
+                   'y': Iterable,
+                   'labels': (lambda x: util.isiterable(x) or type(x) == str),
+                   'figsize': Iterable,
+                   'title': str,
+                   'ylim': Iterable,
+                   'max_val_pad': (int, float, '>=0'),
+                   'show_bottom_labels': bool,
+                   'show_legend': bool,
+                   'show': bool,
+                   'save': bool,
+                   'save_name': str,
+                   'xlabel': str,
+                   'ylabel': str,
+                   }
+    defaults = {'x': [],
+                'y': [],
+                'labels': None,
+                'figsize': (12, 8),
+                'title': '',
+                'ylim': None,
+                'max_val_pad': 0,
+                'show_bottom_labels': False,
+                'show_legend': True,
+                'show': True,
+                'save': False,
+                'save_name': None,
+                'xlabel': None,
+                'ylabel': None,
+                }
     def __init__(self, **kwargs):
-        # Check all kwargs
-        (util.check_parameter(v, k, valid_options) for k, v in kwargs.items())
-        self.xdata = kwargs['x']
-        self.ydata = kwargs['y']
-        self.labels = kwargs.get('labels', None)
-        self.title = kwargs.get('title', '')
-        self._figsize = kwargs.get('figsize', (12, 8))
+        self.params = util.ParameterRegister(constraints=constraints, defaults=defaults, accept_none=True)
+        self.params.set(**kwargs)
+        self.params.set_uninitialized_params()
 
         self._fig = plt.figure(figsize=self._figsize)
         self._ax = self._fig.add_subplot(111)
 
-        self._savename = kwargs.get('savename')
+        self._savename = self.params['save_name']
         if self._savename is None:
             self._savename = 'graph_' + '_'.join(self.title.split(' '))
 
         self._lines = []
         
         # Do the plotting (and add legend if labels are given)
-        if self.labels is not None:
-            for i, (y, label) in enumerate(zip(self.ydata, self.labels)):
-                self._lines.append(self._ax.plot(self.xdata, y, label=label))
+        if self.params['labels'] is not None:
+            for i, (y, label) in enumerate(zip(self.params['x'], self.params['y'])):
+                self._lines.append(self._ax.plot(self.params['x'], y, label=label))
             plt.legend()
         else:
-            for i, y in enumerate(self.ydata):
-                self._lines.append(self._ax.plot(self.xdata, y))
+            for i, y in enumerate(self.params['y']):
+                self._lines.append(self._ax.plot(self.params['x'], y))
 
         # Title
-        plt.title(self.title)
+        plt.title(self.params.['title'])
 
         # x and y labels
-        xlabel = kwargs.get('xlabel', None)
-        if xlabel is not None:
-            self._ax.set_xlabel(xlabel)
+        if self.params['xlabel'] is not None:
+            self._ax.set_xlabel(self.params['xlabel'])
 
-        ylabel = kwargs.get('ylabel', None)
-        if ylabel is not None:
-            self._ax.set_ylabel(ylabel)
+        if self.params['ylabel'] is not None:
+            self._ax.set_ylabel(self.params['ylabel'])
 
         # Save and show now if needed
-        if kwargs.get('save', False):
+        if self.params['save']:
             self.save()
 
-        if kwargs.get('show', False):
+        if self.params['show']:
             self.show()
 
     def show(self):
