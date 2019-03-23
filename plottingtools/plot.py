@@ -19,6 +19,8 @@ from . import util
 from collections import Iterable
 from os.path import join as pathjoin
 
+DEBUG = False
+
 
 class Plot2D():
     def __init__(self, plot_type=None, **kwargs):
@@ -32,7 +34,9 @@ class Plot2D():
                 if data is None:
                     data = kwargs.get('x')
                 bars(data, **kwargs)
-            self.plot = Bars(**kwargs)
+
+            else:
+                self.plot = Bars(**kwargs)
 
         elif plot_type == 'lines':
             self.plot = Lines(**kwargs)
@@ -70,14 +74,14 @@ class Bars(Plot2D):
             show_as_percent: <bool> scales everything as percentages
         Returns: Nothing
     """
-   
+
     constraints = {'data': Iterable,
                    'labels': Iterable,
-                   'bar_width': (int, float),
+                   'bar_width': util.isnumeric,
                    'figsize': Iterable,
                    'title': str,
                    'ylim': Iterable,
-                   'max_val_pad': (int, float),
+                   'max_val_pad': util.isnumeric,
                    'sort_by': ('ascending', 'descending', Iterable),
                    'show_bottom_labels': bool,
                    'show_legend': bool,
@@ -85,9 +89,11 @@ class Bars(Plot2D):
                    'show': bool,
                    'save': bool,
                    'save_name': str,
-                   'scale_by': (int, float, Iterable),
+                   'scale_by': (util.isnumeric, Iterable),
                    'show_bar_labels': bool,
-                   'bar_label_format': (type(lambda x: x)),
+                   'bar_label_format': (lambda x: x),
+                   'multicolor': bool,
+                   'show_as_percent': bool,
                    }
     defaults = {'data': None,
                 'labels': None,
@@ -106,14 +112,16 @@ class Bars(Plot2D):
                 'scale_by': None,
                 'show_bar_labels': False,
                 'bar_label_format': None,
+                'multicolor': True,
+                'show_as_percent': False,
                 }
 
     def __init__(self, **kwargs):
-        # TODO pick up with this 
+        # TODO pick up with this
         self.params = util.ParameterRegister(constraints=self.constraints,
                                              defaults=self.defaults,
                                              accept_none=True,
-                                             inclusive=True)
+                                             match_all_constraints=False)
         self.params.set(**kwargs)
         self.params.set_uninitialized_params()
 
@@ -126,18 +134,19 @@ class Bars(Plot2D):
             self._savename = 'graph_' + '_'.join(self.params['title'].split(' '))
 
         data = np.array(self.params['data'])
-        labels = self.params['labels']
+        labels = np.array(self.params['labels']) if self.params['labels'] is not None else None
 
         if self.params['sort_by'] is not None:
             if isinstance(self.params['sort_by'], str):
                 order = np.argsort(data)
-                if self.params['sort_by'].lowe() == 'descending':
+                if self.params['sort_by'].lower() == 'descending':
                     order = order[::-1]
             else:
                 order = np.array(self.params['sort_by'])
 
             data = data[order]
-            labels = labels[order] if labels is not None else labels
+
+            labels = labels[order] if labels is not None else None
 
         if self.params['show_bottom_labels'] and labels is not None:
             if len(labels) != len(data):
@@ -155,9 +164,13 @@ class Bars(Plot2D):
         else:
             bottom_labels = None
 
-        scale_factor = np.array(self.params['scale_by'])
-        if scale_factor != np.array(None):
-            if scale_factor.shape[0] != len(labels) and scale_factor.shape[0] > 1:
+        if DEBUG:
+            import ipdb
+            ipdb.set_trace()
+
+        scale_factor = np.array(self.params['scale_by']) if self.params['scale_by'] is not None else None
+        if scale_factor is not None:
+            if scale_factor.size != len(labels) and scale_factor.size > 1:
                 raise ValueError('scale_by (with shape {}) must be broadcastable to data (with shape {})'.format(scale_factor.shape, data.shape))
 
             data = data / scale_factor

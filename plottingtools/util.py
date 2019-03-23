@@ -9,6 +9,7 @@ from numpy import prod
 from warnings import warn
 
 VERBOSITY = 0
+DEBUG = False
 
 operations = collections.OrderedDict()
 operations['<='] = lambda x, y: x <= y
@@ -19,8 +20,20 @@ operations['>'] = lambda x, y: x > y
 operations['<'] = lambda x, y: x < y
 
 
+def trycast(item, newtype):
+    try:
+        cast = newtype(item)
+    except (ValueError):
+        cast = item
+    return cast
+
+
 def isiterable(item):
     return isinstance(item, collections.Iterable)
+
+
+def isnumeric(item):
+    return str(item).isnumeric()
 
 
 def isoperation(string):
@@ -143,7 +156,7 @@ def check_constraints(param_value, param_name, constraints, check_all=True):
         # If constraint is, for instance, a lambda function verifying that a
         # parameter is either None or satisfies some other constraint
         # e.g. (lambda x: x is None or isinstance(x, str))
-        else:
+        elif isinstance(c, type(lambda x: x)):
             if VERBOSITY > 0:
                 print('param {}\n  {}({}) evaluates to {}'.format(
                     item_name,
@@ -151,6 +164,9 @@ def check_constraints(param_value, param_name, constraints, check_all=True):
                     item,
                     c(item) if c is not None else 'N/A'))
             return c(item)
+
+        else:
+            raise NotImplementedError
 
     # First get the actual constraint(s)
     constraint = constraints.get(param_name)
@@ -167,12 +183,12 @@ def check_constraints(param_value, param_name, constraints, check_all=True):
 
 
 class ParameterRegister(collections.OrderedDict):
-    def __init__(self, constraints=None, defaults=None, accept_none=False, inclusive=False):
+    def __init__(self, constraints=None, defaults=None, accept_none=False, match_all_constraints=True):
         super().__init__()
         self.constraints = constraints
         self.defaults = defaults
         self.accept_none = accept_none
-        self.inclusive = inclusive
+        self.match_all_constraints = match_all_constraints
 
     def register(self, kwarg_name, constraints=None, default=None):
         self.constraints[kwarg_name] = constraints
@@ -180,9 +196,9 @@ class ParameterRegister(collections.OrderedDict):
 
     def check_kwargs(self, **kwargs):
         if self.accept_none:
-            valid = {k: check_constraints(v, k, self.constraints, check_all=self.inclusive) or v is None for k, v in kwargs.items()}  # NOQA
+            valid = {k: check_constraints(v, k, self.constraints, check_all=self.match_all_constraints) or v is None for k, v in kwargs.items()}  # NOQA
         else:
-            valid = {k: check_constraints(v, k, self.constraints, check_all=self.inclusive) for k, v in kwargs.items()}  # NOQA
+            valid = {k: check_constraints(v, k, self.constraints, check_all=not self.self.match_all_constraints) for k, v in kwargs.items()}  # NOQA
         return valid
 
     def set_uninitialized_params(self, defaults=None):
