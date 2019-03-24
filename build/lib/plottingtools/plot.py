@@ -3,39 +3,107 @@
 # Created: 2019-01-08
 
 # TODO:
+# [ ] Support multiple x arrays
+# [ ] ylim for Lines
+# [ ] max_val_pad for Lines
+# [x] Match API for Bars with Lines
+# [ ] Offload common methods to Plot2D superclass
 # [ ] Better placement of on-chart text relative to bar height
 # [ ] Support for "below"-bar on-chart text
-# [ ] Test non-scaled bars
+# [x] Test non-scaled bars
 # [ ] different logic if labels are numbers as opposed to strings?
-# [ ] support show=False
+# [x] support show=False
 # [ ] label_rotation = 45 causes part of long labels to be placed off page. Can I rectify this?
+# [x] init of Plot2D should use a kwarg
 
-import numpy as np
 from matplotlib import pyplot as plt
 from . import util
+from collections import Iterable
+from os.path import join as pathjoin
+import numpy as np
+import warnings
+
+DEBUG = False
 
 
-def bars(data,
-         labels=None,
-         bar_width=0.75,
-         figsize=(12, 8),
-         title='',
-         ylim=None,
-         max_val_pad=0.1,
-         sort_by=None,
-         show_bottom_labels=True,
-         show_legend=False,
-         show_max_val=False,
-         show=True,
-         save=False,
-         save_name=None,
-         scale_by=None,
-         show_bar_labels=False,
-         bar_label_format=None,
-         multicolor=True,
-         show_as_percent=False,
-         debug=False,
-         ):
+class Plot2D(object):
+    def __init__(self, **kwargs):
+        # TODO do as much of the init stuff here as possible - reduce the size
+        # of the codebase and make it easier to read
+
+        try:
+            constraints = {'x': Iterable,
+                           'y': Iterable,
+                           'labels': Iterable,
+                           'figsize': Iterable,
+                           'title': str,
+                           'ylim': Iterable,
+                           'max_val_pad': (int, float, '>=0'),
+                           'show_bottom_labels': bool,
+                           'show_legend': bool,
+                           'show': bool,
+                           'save': bool,
+                           'save_name': str,
+                           'xlabel': str,
+                           'ylabel': str,
+                           }
+            constraints.update(self.constraints)
+        except AttributeError:
+            pass
+        finally:
+            self.constraints = constraints
+
+        try:
+            defaults = {'x': None,
+                        'y': None,
+                        'labels': None,
+                        'figsize': (12, 8),
+                        'title': '',
+                        'ylim': None,
+                        'max_val_pad': 0,
+                        'show_bottom_labels': False,
+                        'show_legend': True,
+                        'show': True,
+                        'save': False,
+                        'save_name': None,
+                        'xlabel': None,
+                        'ylabel': None,
+                        }
+            defaults.update(self.defaults)
+        except AttributeError:
+            pass
+        finally:
+            self.defaults = defaults
+
+        self.params = util.ParameterRegister(self.constraints,
+                                             self.defaults,
+                                             accept_none=True,
+                                             match_all_constraints=False)
+        self.params.set(**kwargs)
+        self.params.set_uninitialized_params()
+
+        self._fig = plt.figure(figsize=self.params['figsize'])
+        self._ax = self._fig.add_subplot(111)
+        self._data = []
+
+        self._savename = self.params['save_name']
+        if self._savename is None:
+            self._savename = 'graph_' + '_'.join(self.params['title'].split(' '))
+
+    def show(self):
+        plt.show()
+
+    def save(self, savename=None):
+        if savename is not None:
+            self._savename = savename
+
+        plt.savefig(pathjoin('figs', self._savename))
+
+    def set_title(self):
+        self._fig.suptitle(self.params['title'], fontsize=max(self.params['figsize']))
+
+
+class Bars(Plot2D):
     """
         Plots separate bars as independent categories, coloring them differently
         Parameters:
@@ -59,148 +127,221 @@ def bars(data,
         Returns: Nothing
     """
 
-    valid_options = {'data': (list, np.ndarray),
-                     'labels': (list, np.ndarray),
-                     'bar_width': (float),
-                     'figsize': (list, tuple, np.ndarray),
-                     'title': (str),
-                     'ylim': (list, tuple, np.ndarray, None),
-                     'max_val_pad': (int, float, None),
-                     'sort_by': (None, 'ascending', 'descending', tuple, list, np.ndarray),
-                     'show_bottom_labels': (bool),
-                     'show_legend': (bool),
-                     'show_max_val': (bool),
-                     'show': (bool),
-                     'save': (bool),
-                     'save_name': (str, None),
-                     'scale_by': (list, tuple, int, float, np.ndarray, None),
-                     'show_bar_labels': (bool),
-                     'bar_label_format': (None, type(lambda x: x)),
-                     'save': (bool),
-                     }
+    # Bars-specific constraints and defaults - some of these are duplicated,
+    # but kept because I may phase them out in the superclass
+    constraints = {'bar_width': util.isnumeric,
+                   'max_val_pad': util.isnumeric,
+                   'sort_by': ('ascending', 'descending', Iterable),
+                   'show_bottom_labels': bool,
+                   'show_legend': bool,
+                   'show_max_val': bool,
+                   'scale_by': (util.isnumeric, Iterable),
+                   'show_bar_labels': bool,
+                   'bar_label_format': (lambda x: x),
+                   'multicolor': bool,
+                   'show_as_percent': bool,
+                   }
+    defaults = {'bar_width': 0.75,
+                'max_val_pad': 0.1,
+                'sort_by': None,
+                'show_bottom_labels': True,
+                'show_legend': False,
+                'show_max_val': False,
+                'scale_by': None,
+                'show_bar_labels': False,
+                'bar_label_format': None,
+                'multicolor': True,
+                'show_as_percent': False,
+                }
 
-    data = np.array(data)
-    labels = np.array(labels)
+    def __init__(self, **kwargs):
+        # Super has a number of kwarg constraints and defaults
+        super().__init__(**kwargs)
 
-    # Only sort if specified, and do so either ascending or descending
-    util.check_parameter(sort_by, 'sort_by', valid_options)
-    if sort_by is not None:
-        if debug:
+        try:
+            # TODO this is deprecated
+            y_vals = self.params['data']
+            warnings.warn("using 'data' to pass bar height to plotting object is deprecated. Use 'y' instead")
+
+        except KeyError:
+            # NOTE this is the preferred keyword argument, as it more closely follows the API for Lines
+            y_vals = self.params['y']
+        finally:
+            y_vals = np.array(y_vals)
+
+        labels = np.array(self.params['labels']) if self.params['labels'] is not None else None
+
+        # Sort the data and labels by ascending, descending, or the user-defined order
+        if self.params['sort_by'] is not None:
+            if isinstance(self.params['sort_by'], str):
+                order = np.argsort(y_vals)
+                if self.params['sort_by'].lower() == 'descending':
+                    order = order[::-1]
+            else:
+                order = np.array(self.params['sort_by'])
+            y_vals = y_vals[order]
+            labels = labels[order] if labels is not None else None
+
+        # If user wants labels shown at the bottom of the plot
+        if self.params['show_bottom_labels'] and labels is not None:
+            if len(labels) != len(y_vals):
+                raise ValueError('len(labels) = {} but len(y_vals) = {}'.format(len(labels), len(y_vals)))
+
+            bottom_labels = [labels[i] + '\nN = {}'.format(y_vals[i])
+                             for i in range(len(labels))]
+
+            # If there are lots of items, rotate the labels
+            # TODO this is a little buggy - long labels get pushed off plot
+            if len(labels) > 7:
+                label_rotation = 45
+            else:
+                label_rotation = 0
+
+        else:
+            bottom_labels = None
+
+        scale_factor = np.array(self.params['scale_by']) if self.params['scale_by'] is not None else None
+        if scale_factor is not None:
+            if scale_factor.size != len(labels) and scale_factor.size > 1:
+                raise ValueError('scale_by (with shape {}) must be broadcastable to y_vals (with shape {})'.format(scale_factor.shape, y_vals.shape))
+
+            y_vals = y_vals / scale_factor
+            max_val = 1
+        else:
+            max_val = y_vals.max()
+
+        # If we're displaying percentages, scale the y-axis accordingly
+        ylim = self.params['ylim']
+        if self.params['show_as_percent']:
+            y_vals *= 100
+            if ylim is not None:
+                ylim = (ylim[0] * 100, ylim[1] * 100)
+
+        # If ylim is not specified, autoscale
+        if DEBUG:
             import ipdb
             ipdb.set_trace()
 
-        if isinstance(sort_by, str):
-            order = np.argsort(data)
-            if sort_by.lower() == 'descending':
-                order = order[::-1]
+        if ylim is None:
+            ylim = (0, max(y_vals) + max(y_vals) * self.params['max_val_pad'])
+
+        # Now let's plot the damn thing
+        offsets = list(range(y_vals.size))
+        if self.params['multicolor']:
+            for i in range(len(labels)):
+                self._data.append(self._ax.bar(offsets[i],
+                                               y_vals[i],
+                                               self.params['bar_width']))
         else:
-            order = np.array(sort_by)
-        data = data[order]
-        labels = labels[order]
+            self._data = self._ax.bar(offsets, y_vals, self.params['bar_width'])
 
-    # If we're showing labels at the bottom (and they're defined):
-    util.check_parameter(labels, 'labels', valid_options)
-    if show_bottom_labels and labels is not None:
-        if len(labels) != len(data):
-            raise ValueError('len(labels) != len(data)')
+        # Show a line at the maximum value
+        if self.params['show_max_val']:
+            max_val = 100 if self.params['show_as_percent'] else max_val
+            self._ax.plot([min(offsets) - 1, max(offsets) + 1],
+                          [max_val, max_val],
+                          '--',
+                          color=[0.75, 0.75, 0.75])
 
-        bottom_labels = [labels[i] + '\nN = {}'.format(data[i])
-                         for i in range(len(labels))]
+        # Text drawn on the graph labeling the bars with their y_vals
+        if self.params['show_bar_labels']:
 
-        # If there are lots of items, rotate the labels
-        if len(labels) > 7:
-            label_rotation = 45
+            # bar_label_format should either be None or some function
+            if self.params['bar_label_format'] is not None:
+                fmt = self.params['bar_label_format']
+            else:
+                def fmt(x):
+                    return '{}'.format(x)
+
+            if scale_factor != np.array(None):
+                y_offset = 0.05
+
+            for i in range(y_vals.size):
+                self._ax.text(x=offsets[i], y=y_vals[i] + y_offset, s=fmt(y_vals[i]))
+
+        # Limits and tick spacing
+        self._ax.set_ylim(ylim)
+        self._ax.set_xlim(-self.params['bar_width'], (len(y_vals) - 1) + self.params['bar_width'])
+        self._ax.set_xticks(offsets)
+        self._ax.tick_params(labelsize=max(self.params['figsize']))
+
+        # If bottom labels were defined
+        if bottom_labels is not None:
+            xtick_labels = self._ax.set_xticklabels(bottom_labels)
+            # TODO I don't like that this doesn't use the Object-Oriented API,
+            # so maybe phase this out if I can't find a suitable replacement
+            plt.setp(xtick_labels, rotation=label_rotation)
         else:
-            label_rotation = 0
-    else:
-        bottom_labels = None
+            xtick_labels = self._ax.set_xticklabels(['' for i in y_vals])
 
-    # Used if normalizing
-    if scale_by is not None:
-        data = data / np.array(scale_by)
-        max_val = 1
-    else:
-        max_val = data.max()
+        # Using a legend
+        if self.params['show_legend']:
+            self._ax.legend(self._data, labels, prop={'size': max(self.params['figsize'])})
 
-    # Separation between bars
-    #string_dtype = np.dtype('<U1')
-    #if labels.dtype == string_dtype:
-    #    offsets = list(range(len(labels)))
-    #else:
-    #    offsets = list(range(len(labels)))
-    offsets = list(range(len(labels)))
+        self.set_title()
 
-    # If we're displaying percentages, scale the y-axis accordingly
-    if show_as_percent:
-        data *= 100
-        if ylim is not None:
-            ylim = (ylim[0] * 100, ylim[1] * 100)
+        # Saving uses title if save_name is not defined
+        if self.params['save']:
+            self.save()
 
-    # Now let's plot the damn thing
-    bars = []
-    fig = plt.figure(figsize=figsize)
-    ax = fig.add_subplot(111)
-    if multicolor:
-        for i in range(len(labels)):
-            bars.append(ax.bar(offsets[i], data[i], bar_width))
-    else:
-        bars = ax.bar(offsets, data, bar_width)
+        if self.params['show']:
+            self.show()
 
-    # Show a line at the maximum value
-    if show_max_val:
-        max_val = 100 if show_as_percent else max_val
-        ax.plot([min(offsets) - 1, max(offsets) + 1],
-                [max_val, max_val],
-                '--',
-                color=[0.75, 0.75, 0.75])
 
-    # Text drawn on the graph labeling the bars with their data
-    if show_bar_labels:
+class Lines(Plot2D):
+    # No Lines-specific constraints or defaults since there's not a lot of
+    # customization that I offer yet.
 
-        util.check_parameter(bar_label_format, 'bar_label_format', valid_options)
-        # bar_label_format should either be None or some function
-        if bar_label_format is not None:
-            fmt = bar_label_format
+    constraints = {'line_formats': Iterable,
+                   }
+    defaults = {'line_formats': '-',
+                }
+
+    def __init__(self, **kwargs):
+        # Super has a number of kwarg constraints and defaults
+        super().__init__(**kwargs)
+
+        # Grab all lines given as a list for easier logic later
+        try:
+            y_vals = [vec for vec in self.params['y']]
+        except TypeError:
+            y_vals = [self.params['y']]
+
+        # If x is not given, default to nonnegative integers
+        if self.params['x'] is None:
+            x_vals = np.arange(len(y_vals[0]))
         else:
-            def fmt(x):
-                return '{}'.format(x)
+            x_vals = self.params['x']
 
-        if scale_by is not None:
-            y_offset = 0.05
+        # If labels are not given, set to blank for simpler plotting
+        labels = self.params['labels'] if self.params['labels'] is not None else ['' for i in range(len(y_vals))]
 
-        for i in range(len(labels)):
-            plt.text(x=offsets[i], y=data[i] + y_offset, s=fmt(data[i]))
+        # If only a single label is given, turn it into a list for easier logic
+        labels = [labels] if isinstance(labels, str) else labels
 
-    # If ylim is not specified, autoscale
-    if ylim is None:
-        ylim = (0, max(data) + max(data) * max_val_pad)
+        # Get line formats as list
+        line_formats = self.params['line_formats']
+        line_formats = [line_formats] if isinstance(line_formats, str) else line_formats
 
-    # Limits and tick spacing
-    ax.set_ylim(ylim)
-    ax.set_xlim(-bar_width, (len(data) - 1) + bar_width)
-    ax.set_xticks(offsets)
-    plt.tick_params(labelsize=max(figsize))
+        # Do the plotting
+        for (y, label, fmt) in zip(y_vals, labels, line_formats):
+            self._data.append(self._ax.plot(x_vals, y, fmt, label=label))
 
-    # If bottom labels were defined
-    if bottom_labels is not None:
-        xtick_labels = ax.set_xticklabels(bottom_labels)
-        plt.setp(xtick_labels, rotation=label_rotation)
-    else:
-        xtick_labels = ax.set_xticklabels(['' for i in data])
+        # If user specified labels, display a legend
+        if self.params['labels'] is not None:
+            plt.legend()
 
-    # Using a legend
-    if show_legend:
-        ax.legend(bars, labels, prop={'size': max(figsize)})
+        # x- and y-axis labels
+        if self.params['xlabel'] is not None:
+            self._ax.set_xlabel(self.params['xlabel'])
+        if self.params['ylabel'] is not None:
+            self._ax.set_ylabel(self.params['ylabel'])
 
-    # Title
-    fig.suptitle(title, fontsize=max(figsize) * 2)
+        self.set_title()
 
-    # Saving uses title if save_name is not defined
-    if save:
-        if save_name is not None:
-            plt.savefig(save_name)
-        else:
-            plt.savefig(title)
+        # Save and show now if needed
+        if self.params['save']:
+            self.save()
 
-    if show:
-        plt.show()
+        if self.params['show']:
+            self.show()
