@@ -15,6 +15,16 @@ This package does not rely on (or currently support) pandas `DataFrames`, and
 expects data to be in vector form (ideally a numpy `ndarray`). 
 
 
+## What's new?
+---
+### v1.0.0
+- Object-oriented model for plotting
+- More useful utilities
+- Support for line plots
+- Examples for line plots
+- Better organization of examples
+
+
 ## Functionality
 ---
 Currently, this package does the following:
