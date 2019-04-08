@@ -26,6 +26,10 @@ import warnings
 DEBUG = False
 
 
+def close_all():
+    plt.close('all')
+
+
 class Plot2D(object):
     def __init__(self, **kwargs):
         # TODO do as much of the init stuff here as possible - reduce the size
@@ -82,8 +86,9 @@ class Plot2D(object):
         self.params.set(**kwargs)
         self.params.set_uninitialized_params()
 
-        self._fig = plt.figure(figsize=self.params['figsize'])
-        self._ax = self._fig.add_subplot(111)
+        #self._fig = plt.figure(figsize=self.params['figsize'])
+        #self._ax = self._fig.add_subplot(111)
+        self._fig, self._ax = plt.subplots(figsize=self.params['figsize'])
         self._data = []
 
         self._savename = self.params['save_name']
@@ -101,6 +106,16 @@ class Plot2D(object):
 
     def set_title(self):
         self._fig.suptitle(self.params['title'], fontsize=max(self.params['figsize']))
+
+    def close(self):
+        plt.close(self._fig)
+
+    def clear(self):
+        self._fig.clf()
+
+    def set_ticks(self, xticks=None, yticks=None):
+        self._ax.set_xticks(xticks)
+        self._ax.set_yticks(yticks)
 
 
 class Bars(Plot2D):
@@ -233,7 +248,8 @@ class Bars(Plot2D):
                                                y_vals[i],
                                                self.params['bar_width']))
         else:
-            self._data = self._ax.bar(offsets, y_vals, self.params['bar_width'])
+            self._data = self._ax.bar(offsets, y_vals,
+                                      self.params['bar_width'])
 
         # Show a line at the maximum value
         if self.params['show_max_val']:
@@ -261,7 +277,8 @@ class Bars(Plot2D):
 
         # Limits and tick spacing
         self._ax.set_ylim(ylim)
-        self._ax.set_xlim(-self.params['bar_width'], (len(y_vals) - 1) + self.params['bar_width'])
+        self._ax.set_xlim(-self.params['bar_width'],
+                          (len(y_vals) - 1) + self.params['bar_width'])
         self._ax.set_xticks(offsets)
         self._ax.tick_params(labelsize=max(self.params['figsize']))
 
@@ -276,7 +293,8 @@ class Bars(Plot2D):
 
         # Using a legend
         if self.params['show_legend']:
-            self._ax.legend(self._data, labels, prop={'size': max(self.params['figsize'])})
+            self._ax.legend(self._data, labels,
+                            prop={'size': max(self.params['figsize'])})
 
         self.set_title()
 
@@ -314,18 +332,28 @@ class Lines(Plot2D):
             x_vals = self.params['x']
 
         # If labels are not given, set to blank for simpler plotting
-        labels = self.params['labels'] if self.params['labels'] is not None else ['' for i in range(len(y_vals))]
+        if self.params['labels'] is None:
+            labels = ['' for i in range(len(y_vals))]
+        else:
+            labels = self.params['labels']
 
         # If only a single label is given, turn it into a list for easier logic
         labels = [labels] if isinstance(labels, str) else labels
 
         # Get line formats as list
         line_formats = self.params['line_formats']
-        line_formats = [line_formats] if isinstance(line_formats, str) else line_formats
+        if isinstance(line_formats, str):
+            line_formats = [line_formats for i in range(len(y_vals))]
 
         # Do the plotting
-        for (y, label, fmt) in zip(y_vals, labels, line_formats):
-            self._data.append(self._ax.plot(x_vals, y, fmt, label=label))
+        # This allows users to specify specific x-values for each curve -
+        # x_vals must be same length as y_vals
+        if isinstance(x_vals, tuple) or isinstance(x_vals, list):
+            for (x, y, label, fmt) in zip(x_vals, y_vals, labels, line_formats):
+                self._data.append(self._ax.plot(x, y, fmt, label=label))
+        else:
+            for (y, label, fmt) in zip(y_vals, labels, line_formats):
+                self._data.append(self._ax.plot(x_vals, y, fmt, label=label))
 
         # If user specified labels, display a legend
         if self.params['labels'] is not None:
