@@ -356,7 +356,7 @@ class Lines(Plot2D):
                 for (y, label, fmt) in zip(y_vals, labels, line_formats):
                     self._data.append(self._ax.plot(x_vals, y, fmt, label=label))
             else:
-                self._data.append(self._ax.plot(x_vals, y_vals, line_formats, label=labels))
+                self._data.append(self._ax.plot(x_vals, y_vals, line_formats[0], label=labels))
 
         # If user specified labels, display a legend
         if self.params['labels'] is not None:
