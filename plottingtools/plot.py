@@ -348,12 +348,15 @@ class Lines(Plot2D):
         # Do the plotting
         # This allows users to specify specific x-values for each curve -
         # x_vals must be same length as y_vals
-        if isinstance(x_vals, tuple) or isinstance(x_vals, list):
+        if util.isiterable(x_vals[0]):
             for (x, y, label, fmt) in zip(x_vals, y_vals, labels, line_formats):
                 self._data.append(self._ax.plot(x, y, fmt, label=label))
         else:
-            for (y, label, fmt) in zip(y_vals, labels, line_formats):
-                self._data.append(self._ax.plot(x_vals, y, fmt, label=label))
+            if util.isiterable(y_vals[0]):
+                for (y, label, fmt) in zip(y_vals, labels, line_formats):
+                    self._data.append(self._ax.plot(x_vals, y, fmt, label=label))
+            else:
+                self._data.append(self._ax.plot(x_vals, y_vals, line_formats, label=labels))
 
         # If user specified labels, display a legend
         if self.params['labels'] is not None:
