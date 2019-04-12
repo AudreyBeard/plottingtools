@@ -19,7 +19,6 @@
 from matplotlib import pyplot as plt
 from . import util
 from collections import Iterable
-from os.path import join as pathjoin
 import numpy as np
 import warnings
 
@@ -102,7 +101,7 @@ class Plot2D(object):
         if savename is not None:
             self._savename = savename
 
-        plt.savefig(pathjoin('figs', self._savename))
+        plt.savefig(self._savename)
 
     def set_title(self):
         self._fig.suptitle(self.params['title'], fontsize=max(self.params['figsize']))
