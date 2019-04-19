@@ -5,8 +5,8 @@
 # on the PyPI yet
 
 import collections
-from numpy import prod
 from warnings import warn
+import numpy as np
 
 VERBOSITY = 0
 DEBUG = False
@@ -18,6 +18,25 @@ operations['=='] = lambda x, y: x == y
 operations['!='] = lambda x, y: x != y
 operations['>'] = lambda x, y: x > y
 operations['<'] = lambda x, y: x < y
+
+
+# TODO test this
+def unique_colors(n_colors=3):
+    random_state = np.random
+    H = np.eye(n_colors)
+    D = np.ones((n_colors, ))
+    for n in range(1, n_colors):
+        x = random_state.normal(size=(n_colors - n + 1, ))
+        D[n - 1] = np.sign(x[0])
+        x[0] -= D[n - 1] * np.sqrt((x * x).sum())
+
+        Hx = (np.eye(n_colors - n + 1) - 2. * np.outer(x, x) / (x * x).sum())
+        mat = np.eye(n_colors)
+        mat[n - 1:, n - 1:] = Hx
+        H = np.dot(H, mat)
+    D[-1] = (-1) ** (1 - (n_colors % 2)) * D.prod()
+    H = np.abs((D * H.T).T)
+    return H
 
 
 def trycast(item, newtype):
