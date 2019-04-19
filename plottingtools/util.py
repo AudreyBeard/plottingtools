@@ -33,7 +33,8 @@ def isiterable(item):
 
 
 def isnumeric(item):
-    return str(item).isnumeric()
+    types = [int, float]
+    return any([isinstance(item, t) for t in types])
 
 
 def isoperation(string):

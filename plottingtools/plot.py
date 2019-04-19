@@ -13,7 +13,6 @@
 # [x] Test non-scaled bars
 # [ ] different logic if labels are numbers as opposed to strings?
 # [x] support show=False
-# [ ] label_rotation = 45 causes part of long labels to be placed off page. Can I rectify this?
 # [x] init of Plot2D should use a kwarg
 
 from matplotlib import pyplot as plt
@@ -23,6 +22,8 @@ import numpy as np
 import warnings
 
 DEBUG = False
+if DEBUG:
+    import ipdb
 
 
 def close_all():
@@ -94,6 +95,11 @@ class Plot2D(object):
         if self._savename is None:
             self._savename = 'graph_' + '_'.join(self.params['title'].split(' '))
 
+    def set_fig_props(self):
+        self.set_labels()
+        self.set_title()
+        self.set_ticks()
+
     def show(self):
         plt.show()
 
@@ -112,9 +118,54 @@ class Plot2D(object):
     def clear(self):
         self._fig.clf()
 
+    def set_legend(self, labels=None):
+        labels = self.params['labels'] if labels is None else labels
+        if labels is not None:
+            self._ax.legend(self._data, labels,
+                            prop={'size': max(self.params['figsize'])})
+
+    def set_labels(self, xlabels=None, ylabels=None):
+        # x- and y-axis labels
+        xl = None
+        yl = None
+        if xlabels is None and self.params['xlabel'] is not None:
+            xl = self._ax.set_xlabel(self.params['xlabel'])
+        elif xlabels:
+            xl = self._ax.set_xlabel(xlabels)
+        if ylabels is None and self.params['ylabel'] is not None:
+            yl = self._ax.set_ylabel(self.params['ylabel'])
+        elif ylabels:
+            yl = self._ax.set_ylabel(ylabels)
+        return xl, yl
+
     def set_ticks(self, xticks=None, yticks=None):
+        sane_ticks = self._get_ticks_sane()
+        if xticks is None:
+            xticks = sane_ticks[0]
+        if yticks is None:
+            yticks = sane_ticks[1]
         self._ax.set_xticks(xticks)
         self._ax.set_yticks(yticks)
+        self._ax.tick_params(labelsize=max(self.params['figsize']))
+
+    def _get_ticks_sane(self):
+        n_xticks = self.params['figsize'][0] + 1
+        n_yticks = self.params['figsize'][1] + 1
+        min_x = np.array(self.params['x']).min()
+        max_x = np.array(self.params['x']).max()
+        min_y = np.array(self.params['y']).min()
+        max_y = np.array(self.params['y']).max()
+        if max_x >= n_xticks:
+            stride = (max_x - min_x) // n_xticks
+            xticks = np.arange(min_x, max_x + 1, stride)
+        else:
+            xticks = np.linspace(min_x, max_x, self.params['figsize'][0] + 1)
+        if max_y >= n_yticks:
+            stride = (max_y - min_y) // n_yticks
+            yticks = np.arange(min_y, max_y + 1, stride)
+        else:
+            yticks = np.linspace(min_y, max_y, self.params['figsize'][1] + 1)
+        return (xticks, yticks)
 
 
 class Bars(Plot2D):
@@ -174,14 +225,14 @@ class Bars(Plot2D):
 
         try:
             # TODO this is deprecated
-            y_vals = self.params['data']
-            warnings.warn("using 'data' to pass bar height to plotting object is deprecated. Use 'y' instead")
+            self.params['y'] = np.array(self.params['data'])
+            warnings.warn("using 'data' to pass bar height to plotting object is deprecated. Use 'y' instead - overriding 'y'")
 
         except KeyError:
             # NOTE this is the preferred keyword argument, as it more closely follows the API for Lines
-            y_vals = self.params['y']
+            self.params['y'] = np.array(self.params['y'])
         finally:
-            y_vals = np.array(y_vals)
+            y_vals = self.params['y']
 
         labels = np.array(self.params['labels']) if self.params['labels'] is not None else None
 
@@ -204,20 +255,13 @@ class Bars(Plot2D):
             bottom_labels = [labels[i] + '\nN = {}'.format(y_vals[i])
                              for i in range(len(labels))]
 
-            # If there are lots of items, rotate the labels
-            # TODO this is a little buggy - long labels get pushed off plot
-            if len(labels) > 7:
-                label_rotation = 45
-            else:
-                label_rotation = 0
-
         else:
-            bottom_labels = None
+            bottom_labels = None  # NOQA
 
         scale_factor = np.array(self.params['scale_by']) if self.params['scale_by'] is not None else None
         if scale_factor is not None:
             if scale_factor.size != len(labels) and scale_factor.size > 1:
-                raise ValueError('scale_by (with shape {}) must be broadcastable to y_vals (with shape {})'.format(scale_factor.shape, y_vals.shape))
+                raise ValueError('scale_by (shape {}) must be broadcastable to y_vals (shape {})'.format(scale_factor.shape, y_vals.shape))
 
             y_vals = y_vals / scale_factor
             max_val = 1
@@ -233,14 +277,18 @@ class Bars(Plot2D):
 
         # If ylim is not specified, autoscale
         if DEBUG:
-            import ipdb
             ipdb.set_trace()
 
         if ylim is None:
             ylim = (0, max(y_vals) + max(y_vals) * self.params['max_val_pad'])
 
         # Now let's plot the damn thing
-        offsets = list(range(y_vals.size))
+        if self.params['x'] is None:
+            offsets = list(range(y_vals.size))
+            self.params['x'] = np.array(offsets)
+        else:
+            offsets = self.params['x']
+
         if self.params['multicolor']:
             for i in range(len(labels)):
                 self._data.append(self._ax.bar(offsets[i],
@@ -276,25 +324,15 @@ class Bars(Plot2D):
 
         # Limits and tick spacing
         self._ax.set_ylim(ylim)
-        self._ax.set_xlim(-self.params['bar_width'],
-                          (len(y_vals) - 1) + self.params['bar_width'])
-        self._ax.set_xticks(offsets)
-        self._ax.tick_params(labelsize=max(self.params['figsize']))
-
-        # If bottom labels were defined
-        if bottom_labels is not None:
-            xtick_labels = self._ax.set_xticklabels(bottom_labels)
-            # TODO I don't like that this doesn't use the Object-Oriented API,
-            # so maybe phase this out if I can't find a suitable replacement
-            plt.setp(xtick_labels, rotation=label_rotation)
-        else:
-            xtick_labels = self._ax.set_xticklabels(['' for i in y_vals])
+        self._ax.set_xlim(offsets[0] - self.params['bar_width'],
+                          offsets[-1] + self.params['bar_width'])
+        self.set_ticks(xticks=offsets)
 
         # Using a legend
         if self.params['show_legend']:
-            self._ax.legend(self._data, labels,
-                            prop={'size': max(self.params['figsize'])})
+            self.set_legend(labels)
 
+        self.set_labels()
         self.set_title()
 
         # Saving uses title if save_name is not defined
@@ -357,17 +395,10 @@ class Lines(Plot2D):
             else:
                 self._data.append(self._ax.plot(x_vals, y_vals, line_formats[0], label=labels))
 
-        # If user specified labels, display a legend
-        if self.params['labels'] is not None:
-            plt.legend()
-
-        # x- and y-axis labels
-        if self.params['xlabel'] is not None:
-            self._ax.set_xlabel(self.params['xlabel'])
-        if self.params['ylabel'] is not None:
-            self._ax.set_ylabel(self.params['ylabel'])
-
+        self.set_legend()
+        self.set_labels()
         self.set_title()
+        self.set_ticks()
 
         # Save and show now if needed
         if self.params['save']:
@@ -375,3 +406,26 @@ class Lines(Plot2D):
 
         if self.params['show']:
             self.show()
+
+
+class Scatter(Plot2D):
+    constraints = {'marker_formats': Iterable,
+                   }
+    defaults = {'marker_formats': None,
+                }
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.plot(x=self.params['x'],
+                  y=self.params['y'],
+                  marker_formats=self.params['marker_formats'],
+                  labels=self.params['labels'])
+
+    def plot(self, x=None, y=None, labels=None, marker_formats=None):
+        if x is None:
+            x = self._get_x(y)
+        self._data.append(self._ax.scatter(x, y, marker_formats, label=labels))
+
+    def _get_x(self, y, low=0):
+        x = np.arange(low, len(y) + low)
+        return x
