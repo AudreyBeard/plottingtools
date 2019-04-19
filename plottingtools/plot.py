@@ -20,6 +20,7 @@ from . import util
 from collections import Iterable
 import numpy as np
 import warnings
+from os.path import join as pathjoin
 
 DEBUG = False
 if DEBUG:
@@ -50,6 +51,7 @@ class Plot2D(object):
                            'save_name': str,
                            'xlabel': str,
                            'ylabel': str,
+                           'save_path': str,
                            }
             constraints.update(self.constraints)
         except AttributeError:
@@ -72,6 +74,7 @@ class Plot2D(object):
                         'save_name': None,
                         'xlabel': None,
                         'ylabel': None,
+                        'save_path': '.',
                         }
             defaults.update(self.defaults)
         except AttributeError:
@@ -93,7 +96,8 @@ class Plot2D(object):
 
         self._savename = self.params['save_name']
         if self._savename is None:
-            self._savename = 'graph_' + '_'.join(self.params['title'].split(' '))
+            self._savename = pathjoin(self.params['save_path'],
+                                      'graph_' + '_'.join(self.params['title'].split(' ')))
 
     def set_fig_props(self):
         self.set_labels()
@@ -416,14 +420,9 @@ class Scatter(Plot2D):
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        self.plot(x=self.params['x'],
-                  y=self.params['y'],
-                  marker_formats=self.params['marker_formats'],
-                  labels=self.params['labels'])
 
     def plot(self, x=None, y=None, labels=None, marker_formats=None):
-        if x is None:
-            x = self._get_x(y)
+        assert x is not None and y is not None
         self._data.append(self._ax.scatter(x, y, marker_formats, label=labels))
 
     def _get_x(self, y, low=0):
