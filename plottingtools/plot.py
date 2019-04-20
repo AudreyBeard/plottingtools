@@ -420,6 +420,7 @@ class Scatter(Plot2D):
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
+        self.set_title()
 
     def plot(self, x=None, y=None, color=None, labels=None, marker_formats=None):
         assert x is not None and y is not None

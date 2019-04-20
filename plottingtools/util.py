@@ -22,7 +22,7 @@ operations['<'] = lambda x, y: x < y
 
 # TODO test this
 def unique_colors(n_colors=3, low=0, high=0.8):
-    usable_range = np.linspace(low, high, n_colors)
+    usable_range = np.random.permutation(np.linspace(low, high, n_colors))
     stride = n_colors // 3
     colors = [np.c_[usable_range[None, i * stride:],
                     usable_range[None, 0:i * stride]] for i in range(3)]
