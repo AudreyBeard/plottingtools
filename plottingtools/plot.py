@@ -421,9 +421,13 @@ class Scatter(Plot2D):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
 
-    def plot(self, x=None, y=None, labels=None, marker_formats=None):
+    def plot(self, x=None, y=None, color=None, labels=None, marker_formats=None):
         assert x is not None and y is not None
-        self._data.append(self._ax.scatter(x, y, marker_formats, label=labels))
+        self._data.append(self._ax.scatter(x=x,
+                                           y=y,
+                                           c=color,
+                                           marker=marker_formats,
+                                           label=labels))
 
     def _get_x(self, y, low=0):
         x = np.arange(low, len(y) + low)
