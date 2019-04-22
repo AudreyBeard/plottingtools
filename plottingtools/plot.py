@@ -94,10 +94,11 @@ class Plot2D(object):
         self._fig, self._ax = plt.subplots(figsize=self.params['figsize'])
         self._data = []
 
-        self._savename = pathjoin(self.params['save_path'], self.params['save_name'])
-        if self._savename is None:
+        if self.params['save_name'] is None:
             self._savename = pathjoin(self.params['save_path'],
                                       'graph_' + '_'.join(self.params['title'].split(' ')))
+        else:
+            self._savename = pathjoin(self.params['save_path'], self.params['save_name'])
 
     def set_fig_props(self):
         self.set_labels()
