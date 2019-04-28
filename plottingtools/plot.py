@@ -100,6 +100,17 @@ class Plot2D(object):
         else:
             self._savename = pathjoin(self.params['save_path'], self.params['save_name'])
 
+    def _prep_vector(v):
+        """ Converts all kinds of input to a list of numpy arrays for consistency
+        """
+        if util.isiterable(v):
+            if util.isiterable(v[0]):
+                v = [np.array(v_i) for v_i in v]
+            else:
+                v = [np.array(v)]
+
+        return v
+
     def set_fig_props(self):
         self.set_labels()
         self.set_title()
@@ -361,11 +372,13 @@ class Lines(Plot2D):
         # Super has a number of kwarg constraints and defaults
         super().__init__(**kwargs)
 
+        # Grab y values in standardized format
+        y_vals = self._prep_vector(self.params['y'])
         # Grab all lines given as a list for easier logic later
-        try:
-            y_vals = [vec for vec in self.params['y']]
-        except TypeError:
-            y_vals = [self.params['y']]
+        #try:
+        #    y_vals = [vec for vec in self.params['y']]
+        #except TypeError:
+        #    y_vals = [self.params['y']]
 
         # If x is not given, default to nonnegative integers
         if self.params['x'] is None:
