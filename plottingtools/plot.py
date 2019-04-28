@@ -100,7 +100,7 @@ class Plot2D(object):
         else:
             self._savename = pathjoin(self.params['save_path'], self.params['save_name'])
 
-    def _prep_vector(v):
+    def _prep_vector(self, v):
         """ Converts all kinds of input to a list of numpy arrays for consistency
         """
         if util.isiterable(v):
