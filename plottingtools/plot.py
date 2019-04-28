@@ -100,16 +100,34 @@ class Plot2D(object):
         else:
             self._savename = pathjoin(self.params['save_path'], self.params['save_name'])
 
+    def _coerce(self, param):
+        """ Coerces given parameter to required value and returns it
+        """
+        if param == 'labels':
+            self.params[param] = self._prep_labels(self.params[param])
+        else:
+            self.params[param] = self._prep_vector(self.params[param])
+
+        return self.params[param]
+
     def _prep_vector(self, v):
-        """ Converts all kinds of input to a list of numpy arrays for consistency
+        """ Converts all kinds of input to a list of numpy arrays for consistency, overwriting original
         """
         if util.isiterable(v):
             if util.isiterable(v[0]):
                 v = [np.array(v_i) for v_i in v]
             else:
                 v = [np.array(v)]
-
         return v
+
+    def _prep_labels(self, labels=None):
+        """ Converts all kinds of label formats into a list of strings, overwriting original
+        """
+        if labels is None:
+            labels = ['' for i in range(len(self.params['y']))]
+        elif isinstance(labels, str):
+            labels = [labels]
+        return labels
 
     def set_fig_props(self):
         self.set_labels()
@@ -135,10 +153,13 @@ class Plot2D(object):
         self._fig.clf()
 
     def set_legend(self, labels=None):
-        labels = self.params['labels'] if labels is None else labels
+        if labels is None:
+            labels = self.params['labels']
+
         if labels is not None:
-            self._ax.legend(self._data, labels,
-                            prop={'size': max(self.params['figsize'])})
+            #self._ax.legend(self._data, labels,
+            #                prop={'size': max(self.params['figsize'])})
+            self._ax.legend(prop={'size': max(self.params['figsize'])})
 
     def set_labels(self, xlabels=None, ylabels=None):
         # x- and y-axis labels
@@ -373,7 +394,7 @@ class Lines(Plot2D):
         super().__init__(**kwargs)
 
         # Grab y values in standardized format
-        y_vals = self._prep_vector(self.params['y'])
+        y_vals = self._coerce('y')
         # Grab all lines given as a list for easier logic later
         #try:
         #    y_vals = [vec for vec in self.params['y']]
@@ -382,18 +403,17 @@ class Lines(Plot2D):
 
         # If x is not given, default to nonnegative integers
         if self.params['x'] is None:
-            x_vals = np.arange(len(y_vals[0]))
-        else:
-            x_vals = self.params['x']
+            self.params['x'] = np.arange(len(y_vals[0]))
+        x_vals = self._coerce('x')
 
+        labels = self._coerce('labels')
         # If labels are not given, set to blank for simpler plotting
-        if self.params['labels'] is None:
-            labels = ['' for i in range(len(y_vals))]
-        else:
-            labels = self.params['labels']
-
+        #if self.params['labels'] is None:
+        #    labels = ['' for i in range(len(y_vals))]
+        #else:
+        #    labels = self.params['labels']
         # If only a single label is given, turn it into a list for easier logic
-        labels = [labels] if isinstance(labels, str) else labels
+        #labels = [labels] if isinstance(labels, str) else labels
 
         # Get line formats as list
         line_formats = self.params['line_formats']
@@ -401,17 +421,22 @@ class Lines(Plot2D):
             line_formats = [line_formats for i in range(len(y_vals))]
 
         # Do the plotting
-        # This allows users to specify specific x-values for each curve -
-        # x_vals must be same length as y_vals
-        if util.isiterable(x_vals[0]):
+        # If multiple x ranges were given:
+        if len(x_vals) > 1:
             for (x, y, label, fmt) in zip(x_vals, y_vals, labels, line_formats):
                 self._data.append(self._ax.plot(x, y, fmt, label=label))
+
+        # Common x range for all y's
         else:
-            if util.isiterable(y_vals[0]):
+
+            # If plotting more than one curve
+            if len(y_vals) > 1:
                 for (y, label, fmt) in zip(y_vals, labels, line_formats):
-                    self._data.append(self._ax.plot(x_vals, y, fmt, label=label))
+                    self._data.append(self._ax.plot(x_vals[0], y, fmt, label=label))
+
+            # Plotting only one curve
             else:
-                self._data.append(self._ax.plot(x_vals, y_vals, line_formats[0], label=labels))
+                self._data.append(self._ax.plot(x_vals[0], y_vals[0], line_formats[0], label=labels))
 
         self.set_legend()
         self.set_labels()
