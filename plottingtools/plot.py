@@ -27,6 +27,14 @@ if DEBUG:
     import ipdb
 
 
+__all__ = [
+    'close_all',
+    'Bars',
+    'Lines',
+    'Scatter',
+]
+
+
 def close_all():
     plt.close('all')
 
