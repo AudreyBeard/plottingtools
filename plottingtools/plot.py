@@ -35,6 +35,20 @@ __all__ = [
 ]
 
 
+def compute_text_offset(x, y, text, data_range_x=None, data_range_y=None,
+                        default_offset=1.01):
+    lines = text.split('\n')
+    n_lines = len(lines) - 1
+    n_chars = max([len(l) for l in lines])
+
+    data_range_x = [x] if data_range_x is None else data_range_x
+    data_range_y = [y] if data_range_y is None else data_range_y
+
+    x_offset = 1 - (n_chars * 0.01) if x >= max(data_range_x) * 0.9 else default_offset
+    y_offset = 1 - (n_lines * 0.04) if y >= max(data_range_y) * 0.9 else default_offset
+    return x_offset, y_offset
+
+
 def close_all():
     plt.close('all')
 
@@ -51,6 +65,7 @@ class Plot2D(object):
                            'figsize': Iterable,
                            'title': str,
                            'ylim': Iterable,
+                           'xlim': Iterable,
                            'max_val_pad': (int, float, '>=0'),
                            'show_bottom_labels': bool,
                            'show_legend': bool,
@@ -74,6 +89,7 @@ class Plot2D(object):
                         'figsize': (12, 8),
                         'title': '',
                         'ylim': None,
+                        'xlim': None,
                         'max_val_pad': 0,
                         'show_bottom_labels': False,
                         'show_legend': True,
@@ -101,6 +117,10 @@ class Plot2D(object):
         #self._ax = self._fig.add_subplot(111)
         self._fig, self._ax = plt.subplots(figsize=self.params['figsize'])
         self._data = []
+        if self.params['xlim']:
+            self._ax.set_xlim(self.params['xlim'])
+        if self.params['ylim']:
+            self._ax.set_ylim(self.params['ylim'])
 
         self._savename = self.params['save_name']
         if self._savename is None:
@@ -178,6 +198,9 @@ class Plot2D(object):
         else:
             yticks = np.linspace(min_y, max_y, self.params['figsize'][1] + 1)
         return (xticks, yticks)
+
+    def line(self, x_pair, y_pair, fmt):
+        self._ax.plot(x_pair, y_pair, fmt)
 
 
 class Bars(Plot2D):
@@ -422,13 +445,21 @@ class Lines(Plot2D):
 
 class Scatter(Plot2D):
     constraints = {'marker_formats': Iterable,
+                   'color': None,
                    }
     defaults = {'marker_formats': None,
+                'color': None,
                 }
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.set_title()
+        self.plot(x=self.params['x'],
+                  y=self.params['y'],
+                  color=self.params['color'],
+                  marker_formats=self.params['marker_formats'],
+                  labels=self.params['labels'],
+                  )
 
     def plot(self, x=None, y=None, color=None, labels=None, marker_formats=None):
         assert x is not None and y is not None
@@ -436,7 +467,21 @@ class Scatter(Plot2D):
                                            y=y,
                                            c=color,
                                            marker=marker_formats,
-                                           label=labels))
+                                           ))
+        if isinstance(labels, str):
+            x_offset, y_offset = compute_text_offset(x, y, text=labels)
+            self._ax.text(x=x * x_offset,
+                          y=y * y_offset,
+                          s=labels)
+        else:
+            for x_i, y_i, label_i in zip(x, y, labels):
+                x_offset, y_offset = compute_text_offset(x_i, y_i,
+                                                         text=label_i,
+                                                         data_range_x=x,
+                                                         data_range_y=y)
+                self._ax.text(x=x_i * x_offset,
+                              y=y_i * y_offset,
+                              s=label_i)
 
     def _get_x(self, y, low=0):
         x = np.arange(low, len(y) + low)
