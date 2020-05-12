@@ -3,6 +3,7 @@
 # Created: 2019-01-08
 
 # TODO:
+# [ ] 2020-05-12: Subplot support
 # [ ] Support multiple x arrays
 # [ ] ylim for Lines
 # [ ] max_val_pad for Lines
@@ -139,7 +140,8 @@ class Plot2D(object):
         return self.params[param]
 
     def _prep_vector(self, v):
-        """ Converts all kinds of input to a list of numpy arrays for consistency, overwriting original
+        """ Converts all kinds of input to a list of numpy arrays for
+            consistency, overwriting original
         """
         if util.isiterable(v):
             if util.isiterable(v[0]):
@@ -149,7 +151,8 @@ class Plot2D(object):
         return v
 
     def _prep_labels(self, labels=None):
-        """ Converts all kinds of label formats into a list of strings, overwriting original
+        """ Converts all kinds of label formats into a list of strings,
+            overwriting original
         """
         if labels is None:
             labels = ['' for i in range(len(self.params['y']))]
