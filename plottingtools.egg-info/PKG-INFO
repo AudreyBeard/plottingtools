@@ -1,10 +1,10 @@
-Metadata-Version: 1.0
+Metadata-Version: 1.2
 Name: plottingtools
-Version: 1.0.1
+Version: 1.0.2
 Summary: A collection of tools for plotting graphs that I have used often enough (or are complex enough) for me to add to a repo
-Home-page: https://github.com/JoshuaBeard/plottingtools
-Author: Joshua Beard
-Author-email: joshuabeard92@gmail.com
+Home-page: https://github.com/AudreyBeard/plottingtools
+Author: Audrey Beard
+Author-email: audrey.s.beard@gmail.com
 License: UNKNOWN
 Description: # plottingtools
         A collection of tools that I use for plotting often enough (or with enough
@@ -64,3 +64,4 @@ Description: # plottingtools
         
         
 Platform: UNKNOWN
+Requires-Python: >=3

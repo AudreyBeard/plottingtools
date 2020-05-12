@@ -13,7 +13,7 @@ setup(name='plottingtools',
       packages=find_packages(),
       install_requires=['numpy', 'matplotlib'],
       url='https://github.com/AudreyBeard/plottingtools',
-      python_requires='>=3'
+      python_requires='>=3',
       changelog={'0.0': 'Original',
                  '0.1': 'Fix import issues',
                  '0.2.0': 'Updated interface to be more intuitive, added some examples',
