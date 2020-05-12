@@ -5,8 +5,8 @@
 # on the PyPI yet
 
 import collections
-from numpy import prod
 from warnings import warn
+import numpy as np
 
 VERBOSITY = 0
 DEBUG = False
@@ -18,6 +18,16 @@ operations['=='] = lambda x, y: x == y
 operations['!='] = lambda x, y: x != y
 operations['>'] = lambda x, y: x > y
 operations['<'] = lambda x, y: x < y
+
+
+# TODO test this
+def unique_colors(n_colors=3, low=0, high=0.8):
+    usable_range = np.random.permutation(np.linspace(low, high, n_colors))
+    stride = n_colors // 3
+    colors = [np.c_[usable_range[None, i * stride:],
+                    usable_range[None, 0:i * stride]] for i in range(3)]
+    colors = np.array(colors).squeeze().T
+    return colors
 
 
 def trycast(item, newtype):
@@ -33,7 +43,8 @@ def isiterable(item):
 
 
 def isnumeric(item):
-    return str(item).isnumeric()
+    types = [int, float]
+    return any([isinstance(item, t) for t in types])
 
 
 def isoperation(string):
@@ -249,6 +260,34 @@ class ParameterRegister(collections.OrderedDict):
 
     def __repr__(self):
         return self._pretty
+
+
+def distinct_colors(n):
+    colors = [
+        (230, 25, 75),
+        (60, 180, 75),
+        (255, 225, 25),
+        (0, 130, 200),
+        (245, 130, 48),
+        (145, 30, 180),
+        (70, 240, 240),
+        (240, 50, 230),
+        (210, 245, 60),
+        (250, 190, 190),
+        (0, 128, 128),
+        (230, 190, 255),
+        (170, 110, 40),
+        (255, 250, 200),
+        (128, 0, 0),
+        (170, 255, 195),
+        (128, 128, 0),
+        (255, 215, 180),
+        (0, 0, 128),
+        (85, 85, 85),
+        (170, 170, 170),
+        (255, 255, 255),
+    ]
+    return colors[:n]
 
 
 if __name__ == "__main__":

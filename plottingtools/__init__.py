@@ -1,1 +1,3 @@
-from plottingtools import plot
+# flake8: NOQA
+from . import plot
+from .plot import *
