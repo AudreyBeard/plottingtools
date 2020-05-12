@@ -21,3 +21,4 @@ setup(name='plottingtools',
                  '1.0.2': 'Remove deadname',
                  }
       )
+    python_requires='>=3'
